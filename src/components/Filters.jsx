@@ -22,14 +22,18 @@ function FilterSelect({ label, options, value, onChange, name, icon }) {
 
 export default function Filters({ filters, setFilters }) {
   const handleSelectionChange = (event, name) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
+    // En lugar de actualizar estado interno, actualizar URL
+    const newFilters = {
+      ...filters,
       [name]: event.target.value,
-    }));
+    };
+    setFilters(newFilters); // Esto ahora actualiza la URL
   };
 
   const updateField = (type, value) => {
-    setFilters({ ...filters, [type]: value });
+    // Actualizar campo individual en URL
+    const newFilters = { ...filters, [type]: value };
+    setFilters(newFilters);
   };
 
   return (

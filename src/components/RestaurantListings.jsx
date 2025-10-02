@@ -4,8 +4,8 @@
 // It receives data from src/app/page.jsx, such as the initial restaurants and search params from the URL
 
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { React, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import renderStars from "@/src/components/Stars.jsx";
 import { getRestaurantsSnapshot } from "@/src/lib/firebase/firestore.js";
 import Filters from "@/src/components/Filters.jsx";
@@ -55,36 +55,43 @@ const RestaurantMetadata = ({ restaurant }) => (
   </div>
 );
 
-export default function RestaurantListings({
-  initialRestaurants,
-  searchParams,
-}) {
+export default function RestaurantListings({ initialRestaurants }) {
+  const searchParams = useSearchParams();
   const router = useRouter();
 
-  // The initial filters are the search params from the URL, useful for when the user refreshes the page
-  const initialFilters = {
-    city: searchParams.city || "",
-    category: searchParams.category || "",
-    price: searchParams.price || "",
-    sort: searchParams.sort || "",
+  // Estado DERIVADO de la URL - siempre sincronizado
+  const filters = {
+    city: searchParams.get("city") || "",
+    category: searchParams.get("category") || "",
+    price: searchParams.get("price") || "",
+    sort: searchParams.get("sort") || "",
+  };
+
+  const handleFilterChange = (newFilters) => {
+    const params = new URLSearchParams(searchParams);
+    console.log("Nuevos filtros:", newFilters);
+
+    // Actualizar params
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    router.push(`?${params.toString()}`, { scroll: false });
   };
 
   const [restaurants, setRestaurants] = useState(initialRestaurants);
-  const [filters, setFilters] = useState(initialFilters);
 
   useEffect(() => {
-    routerWithFilters(router, filters);
-  }, [router, filters]);
-
-  useEffect(() => {
-    return getRestaurantsSnapshot((data) => {
-      setRestaurants(data);
-    }, filters);
-  }, [filters]);
+    return getRestaurantsSnapshot(setRestaurants, filters);
+  }, [filters]); // ← Se re-ejecuta automáticamente cuando URL cambia
 
   return (
     <article>
-      <Filters filters={filters} setFilters={setFilters} />
+      <Filters filters={filters} setFilters={handleFilterChange} />
       <ul className="restaurants">
         {restaurants.map((restaurant) => (
           <RestaurantItem key={restaurant.id} restaurant={restaurant} />
